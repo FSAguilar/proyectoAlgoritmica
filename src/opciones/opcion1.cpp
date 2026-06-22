@@ -1,6 +1,5 @@
 #include "../../include/opcion1.h"
 #include "../../include/utils.h"
-#include "raylib.h"
 #include <bits/stdc++.h>
 
 using namespace std;

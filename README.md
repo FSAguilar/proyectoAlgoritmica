@@ -32,7 +32,8 @@ pacman -S mingw-w64-ucrt-x86_64-raylib
 ### Linux (Ubuntu/Debian)
 En tu terminal, instala la librería de desarrollo de Raylib:
 ```bash
-sudo apt install libraylib-dev
+sudo apt install wget
+wget https://github.com/raysan5/raylib/releases/download/5.0/raylib-5.0_linux_amd64.tar.gz
 ```
 *(Si usas Arch Linux, puedes usar `sudo pacman -S raylib`)*
 
