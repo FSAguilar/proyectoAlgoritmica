@@ -1,0 +1,1 @@
+g++ src/*.cpp src/utils/* src/opciones/* -o main.exe -Iinclude -lraylib -lopengl32 -lgdi32 -lwinmm

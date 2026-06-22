@@ -1,15 +1,14 @@
 #include "raylib.h"
 #include <bits/stdc++.h>
+#include "../include/opcion1.h"
+#include "../include/utils.h"
 using namespace std;
 
-// Poner Texto teniendo en cuenta que el centro de la pantalla tiene coords (0,0)
-void text(const char *text, int x, int y, int size, Color color) {
-  int xCenter = (GetScreenWidth() - MeasureText(text, size)) / 2;
-  int yCenter = (GetScreenHeight() - size) / 2;
-  DrawText(text, xCenter + x, yCenter + y, size, color);
-}
-
 int main() {
+
+  string state = "menu";
+
+  vector<Button> buttons;
 
   const int screenWidth = 800;
   const int screenHeight = 600;
@@ -22,10 +21,32 @@ int main() {
 
     BeginDrawing();
 
-    ClearBackground(RAYWHITE);
+    if (state == "menu") {
+      ClearBackground(RAYWHITE);
+      DrawText(state.c_str(), 0, 0, 20, BLACK);
 
-    text("Hola Mundo", 0, 0, 20, BLACK);
+      addButton(0, -100, 200, 50, "Opcion 1", buttons);
+      addButton(0, 0, 200, 50, "Opcion 2", buttons);
+      addButton(0, 100, 200, 50, "Opcion 3", buttons);
 
+      if (isButtonPressed(buttons[0])) {
+        cout << buttons[0].text << "\n";
+        state = "opcion1";
+      }
+      if (isButtonPressed(buttons[1])) {
+        cout << buttons[1].text << "\n";
+        state = "opcion2";
+      }
+      if (isButtonPressed(buttons[2])) {
+        cout << buttons[2].text << "\n";
+        state = "opcion3";
+      }
+      buttons.clear();
+    } else if (state == "opcion1") {
+      ClearBackground(RAYWHITE);
+      DrawText(state.c_str(), 0, 0, 20, BLACK);
+      drawOpcion1();
+    }
     EndDrawing();
   }
   CloseWindow();

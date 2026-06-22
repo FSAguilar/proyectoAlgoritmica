@@ -45,12 +45,12 @@ sudo apt install libraylib-dev
 
 **En Windows:**
 ```bash
-g++ src/*.cpp src/algorithms/*.cpp -o juego.exe -Iinclude -lraylib -lopengl32 -lgdi32 -lwinmm
+g++ src/*.cpp -o main.exe -Iinclude -lraylib -lopengl32 -lgdi32 -lwinmm
 ```
 
 **En Linux:**
 ```bash
-g++ src/*.cpp src/algorithms/*.cpp -o juego -Iinclude -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+g++ src/*.cpp -o main -Iinclude -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 ```
 *(Nota: He incluido `-Iinclude` por si tienes archivos `.h` o `.hpp` en una carpeta `include/`, y `src/algorithms/*.cpp` asumiendo que tu código está ahí).*
 
