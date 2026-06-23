@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include <bits/stdc++.h>
 #include "../include/opcion1.h"
+#include "../include/mochila.h"
 #include "../include/utils.h"
 #include "../include/grafo_la_paz.h"
 using namespace std;
@@ -58,7 +59,11 @@ int main() {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
       drawMochila();
+<<<<<<< HEAD
     }
+=======
+    } 
+>>>>>>> 948909b6d1bb6783d7e3195cd86fcc1ec7d3f506
     EndDrawing();
   }
   CloseWindow();
