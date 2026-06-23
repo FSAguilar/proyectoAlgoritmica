@@ -18,8 +18,8 @@ int main() {
 
   vector<Button> buttons;
 
-  const int screenWidth = 1600;
-  const int screenHeight = 900;
+  const int screenWidth = 1000;
+  const int screenHeight = 700;
 
   InitWindow(screenWidth, screenHeight, "Soluciones con Raylib");
 
@@ -50,14 +50,14 @@ int main() {
         state = "opcion3";
       }
       buttons.clear();
-    } else if (state == "mochila_bb") {
-      ClearBackground(RAYWHITE);
-      DrawText(state.c_str(), 0, 0, 20, BLACK);
-      drawOpcion1();
     } else if (state == "opcion1") {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
       drawOpcion1();
+    } else if (state == "mochila_bb") {
+      ClearBackground(RAYWHITE);
+      DrawText(state.c_str(), 0, 0, 20, BLACK);
+      drawMochila();
     }
     EndDrawing();
   }
