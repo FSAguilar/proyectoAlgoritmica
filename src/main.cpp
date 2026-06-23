@@ -26,7 +26,7 @@ int main() {
       DrawText(state.c_str(), 0, 0, 20, BLACK);
 
       addButton(0, -100, 200, 50, "Opcion 1", buttons);
-      addButton(0, 0, 200, 50, "Opcion 2", buttons);
+      addButton(0, 0, 200, 50, "Mochila bb", buttons);
       addButton(0, 100, 200, 50, "Opcion 3", buttons);
 
       if (isButtonPressed(buttons[0])) {
@@ -35,14 +35,14 @@ int main() {
       }
       if (isButtonPressed(buttons[1])) {
         cout << buttons[1].text << "\n";
-        state = "opcion2";
+        state = "mochila_bb";
       }
       if (isButtonPressed(buttons[2])) {
         cout << buttons[2].text << "\n";
         state = "opcion3";
       }
       buttons.clear();
-    } else if (state == "opcion1") {
+    } else if (state == "mochila_bb") {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
       drawOpcion1();
