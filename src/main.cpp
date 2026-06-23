@@ -59,11 +59,8 @@ int main() {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
       drawMochila();
-<<<<<<< HEAD
     }
-=======
-    } 
->>>>>>> 948909b6d1bb6783d7e3195cd86fcc1ec7d3f506
+
     EndDrawing();
   }
   CloseWindow();
