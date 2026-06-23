@@ -2,16 +2,24 @@
 #include <bits/stdc++.h>
 #include "../include/opcion1.h"
 #include "../include/utils.h"
+#include "../include/grafo_la_paz.h"
 using namespace std;
 
 int main() {
+
+  if (!CargarMapaBinario("mapa.bin")) {
+    std::cerr << "Error crítico: No se pudo encontrar o cargar 'mapa.bin'" << std::endl;
+    return -1;
+  }
+
+  std::cout << "Mapa cargado con éxito. Nodos: " << NUM_NODOS << std::endl;
 
   string state = "menu";
 
   vector<Button> buttons;
 
-  const int screenWidth = 800;
-  const int screenHeight = 600;
+  const int screenWidth = 1600;
+  const int screenHeight = 900;
 
   InitWindow(screenWidth, screenHeight, "Soluciones con Raylib");
 
@@ -43,6 +51,10 @@ int main() {
       }
       buttons.clear();
     } else if (state == "mochila_bb") {
+      ClearBackground(RAYWHITE);
+      DrawText(state.c_str(), 0, 0, 20, BLACK);
+      drawOpcion1();
+    } else if (state == "opcion1") {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
       drawOpcion1();
