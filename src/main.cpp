@@ -13,6 +13,11 @@ int main() {
     return -1;
   }
 
+  NORTH = -16.46;
+  SOUTH = -16.56;
+  EAST = -68.06;
+  WEST = -68.16;
+
   std::cout << "Mapa cargado con éxito. Nodos: " << NUM_NODOS << std::endl;
 
   string state = "menu";
@@ -20,9 +25,9 @@ int main() {
   vector<Button> buttons;
 
   const int screenWidth = 1000;
-  const int screenHeight = 700;
+  const int screenHeight = 1000;
 
-  InitWindow(screenWidth, screenHeight, "Soluciones con Raylib");
+  InitWindow(screenWidth, screenHeight, "Proyecto Algoritmica");
 
   SetTargetFPS(60);
 
@@ -34,13 +39,13 @@ int main() {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
 
-      addButton(0, -100, 200, 50, "Opcion 1", buttons);
+      addButton(0, -100, 200, 50, "Camino mas corto", buttons);
       addButton(0, 0, 200, 50, "Mochila bb", buttons);
       addButton(0, 100, 200, 50, "Opcion 3", buttons);
 
       if (isButtonPressed(buttons[0])) {
         cout << buttons[0].text << "\n";
-        state = "opcion1";
+        state = "camino mas corto";
       }
       if (isButtonPressed(buttons[1])) {
         cout << buttons[1].text << "\n";
@@ -51,10 +56,10 @@ int main() {
         state = "opcion3";
       }
       buttons.clear();
-    } else if (state == "opcion1") {
-      ClearBackground(RAYWHITE);
-      DrawText(state.c_str(), 0, 0, 20, BLACK);
+    } else if (state == "camino mas corto") {
+      ClearBackground({ 13, 17, 23, 255 });
       drawOpcion1();
+      DrawText(state.c_str(), 0, 0, 20, BLACK);
     } else if (state == "mochila_bb") {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);

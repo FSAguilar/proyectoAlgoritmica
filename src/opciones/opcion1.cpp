@@ -1,10 +1,14 @@
 #include "../../include/opcion1.h"
 #include "../../include/utils.h"
 #include "../../include/grafo_la_paz.h" // Cabecera sincronizada con el nuevo nombre
+#include "../../include/djikstra.h"
 #include <bits/stdc++.h>
+#include <raylib.h>
 
 using namespace std;
-
+int ORIGEN = -1;
+int DESTINO = -1;
+bool CAMINO_CALCULADO = false;
 // Transforma coordenadas geográficas a píxeles relativos al centro (0,0) de tus utils
 // Transforma coordenadas geográficas a píxeles RELATIVOS al centro (0,0) que espera tu función Coord()
 Vector2 MapGeoToRelativeScreen(double lat, double lon) {
@@ -37,19 +41,154 @@ void MapMouseToGeo(float mouseX, float mouseY, double &outLat, double &outLon) {
   outLat = NORTH - (absY / (double) h) * (NORTH - SOUTH);
 }
 
-// Variables persistentes entre fotogramas para guardar la información del pin seleccionado
+// Retorna el índice del nodo más cercano al punto geográfico dado (scan lineal O(n))
+int NodoMasCercano(double clickLat, double clickLon) {
+  int mejorIdx = -1;
+  double mejorDist = 1e18;
+
+  for (int i = 0; i < NUM_NODOS; i++) {
+    double dLat = METADATOS_NODOS[i].lat - clickLat;
+    double dLon = METADATOS_NODOS[i].lon - clickLon;
+    double dist = dLat * dLat + dLon * dLon;
+
+    if (dist < mejorDist) {
+      mejorDist = dist;
+      mejorIdx = i;
+    }
+  }
+  return mejorIdx;
+}
+
+// Variables persistentes entre fotogramas
 static bool mapaClickeado = false;
 static double lastLat = 0.0;
 static double lastLon = 0.0;
+static int nodoSeleccionado = -1;
+static vector<int> caminoCalculado; // Resultado del último Dijkstra
+
+// Textura de fondo del mapa (se carga una sola vez)
+static Texture2D texturaMapa = { 0 };
+static bool texturaMapaCargada = false;
+// Límites geográficos originales con los que se generó la imagen
+// Deben coincidir con los límites reales del grafo completo
+static const double IMG_NORTH = -16.410549788;
+static const double IMG_SOUTH = -16.794315612;
+static const double IMG_EAST = -67.60832563599999;
+static const double IMG_WEST = -68.169195764;
+
+// Estado del pan (arrastrar con clic derecho)
+static bool panActivo = false;
+static float panMousePrevX = 0.0f;
+static float panMousePrevY = 0.0f;
 
 void drawOpcion1() {
-  // --- 1. RENDERIZADO DE CALLES Y AVENIDAS (GRAFO) ---
+  // --- 0. ZOOM Y PAN ---
+
+  // Zoom con rueda del mouse, centrado en la posición del cursor
+  float rueda = GetMouseWheelMove();
+  if (rueda != 0.0f) {
+    float mx = (float) GetMouseX();
+    float my = (float) GetMouseY();
+
+    // Convertir posición del cursor a coordenadas geográficas antes del zoom
+    double geoLat, geoLon;
+    MapMouseToGeo(mx, my, geoLat, geoLon);
+
+    // Factor de escala: >1 achica el bounding box (zoom in), <1 lo agranda (zoom out)
+    double factor = (rueda > 0) ? 0.85 : 1.0 / 0.85;
+
+    double rangoLat = (NORTH - SOUTH) * factor;
+    double rangoLon = (EAST - WEST) * factor;
+
+    // Proporciones del cursor dentro del bounding box actual
+    double propLat = (NORTH - geoLat) / (NORTH - SOUTH);
+    double propLon = (geoLon - WEST) / (EAST - WEST);
+
+    // Recalcular límites manteniendo el punto bajo el cursor fijo
+    NORTH = geoLat + propLat * rangoLat;
+    SOUTH = NORTH - rangoLat;
+    WEST = geoLon - propLon * rangoLon;
+    EAST = WEST + rangoLon;
+  }
+
+  // Pan con clic derecho (arrastrar) — solo dentro del área del mapa
+  if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+    float mx = (float) GetMouseX();
+    float my = (float) GetMouseY();
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+    bool enElMapa = (mx >= w * 0.1f && mx <= w * 0.9f && my >= h * 0.1f && my <= h * 0.9f);
+    if (enElMapa) {
+      panActivo = true;
+      panMousePrevX = mx;
+      panMousePrevY = my;
+    }
+  }
+  if (IsMouseButtonReleased(MOUSE_RIGHT_BUTTON)) {
+    panActivo = false;
+  }
+  if (panActivo) {
+    float mx = (float) GetMouseX();
+    float my = (float) GetMouseY();
+    float dx = mx - panMousePrevX;
+    float dy = my - panMousePrevY;
+    panMousePrevX = mx;
+    panMousePrevY = my;
+
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+
+    // Convertir desplazamiento en píxeles a grados geográficos
+    double deltaLon = -(dx / (w * 0.8)) * (EAST - WEST);
+    double deltaLat = (dy / (h * 0.8)) * (NORTH - SOUTH);
+
+    NORTH += deltaLat;
+    SOUTH += deltaLat;
+    EAST += deltaLon;
+    WEST += deltaLon;
+  }
+  // --- 1. FONDO DEL MAPA ---
+
+  // Cargar textura la primera vez
+  if (!texturaMapaCargada) {
+    texturaMapa = LoadTexture("mapa_fondo.png");
+    texturaMapaCargada = true;
+  }
+
+  // Dibujar textura ajustada al zoom/pan actual
+  if (texturaMapa.id != 0) {
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
+
+    // Qué fracción de la imagen original corresponde a la vista actual
+    float srcX = (float) ((WEST - IMG_WEST) / (IMG_EAST - IMG_WEST) * texturaMapa.width);
+    float srcY = (float) ((IMG_NORTH - NORTH) / (IMG_NORTH - IMG_SOUTH) * texturaMapa.height);
+    float srcW = (float) ((EAST - WEST) / (IMG_EAST - IMG_WEST) * texturaMapa.width);
+    float srcH = (float) ((NORTH - SOUTH) / (IMG_NORTH - IMG_SOUTH) * texturaMapa.height);
+
+    // El grafo usa un margen del 10% en cada lado (factor 0.8 en MapGeoToRelativeScreen)
+    // La imagen debe ocupar exactamente el mismo area para alinearse
+    float margenX = w * 0.1f;
+    float margenY = h * 0.1f;
+    Rectangle fuente = { srcX, srcY, srcW, srcH };
+    Rectangle destino = { margenX, margenY, w * 0.8f, h * 0.8f };
+    DrawTexturePro(texturaMapa, fuente, destino, { 0, 0 }, 0.0f, WHITE);
+  }
+
+  // --- 2. RENDERIZADO DE CALLES Y AVENIDAS (GRAFO) ---
   for (int u = 0; u < NUM_NODOS; u++) {
+    if (METADATOS_NODOS[u].lon == -67.6191116) {
+      continue;
+    }
+
     Vector2 p1 = MapGeoToRelativeScreen(METADATOS_NODOS[u].lat, METADATOS_NODOS[u].lon);
     pair<int, int> absP1 = Coord((int) p1.x, (int) p1.y);
 
     for (const auto &edge : MAPA_GRAFO[u]) {
       int v = edge.first;
+      if (METADATOS_NODOS[v].lon == -67.6191116) {
+        continue;
+      }
 
       Vector2 p2 = MapGeoToRelativeScreen(METADATOS_NODOS[v].lat, METADATOS_NODOS[v].lon);
       pair<int, int> absP2 = Coord((int) p2.x, (int) p2.y);
@@ -58,49 +197,140 @@ void drawOpcion1() {
     }
   }
 
+  if (CAMINO_CALCULADO && ORIGEN != -1 && DESTINO != -1) {
+    for (int i = 0; i < (int) caminoCalculado.size() - 1; i++) {
+      int nodo = caminoCalculado[i];
+      int nodoDestino = caminoCalculado[i + 1];
+      Vector2 p1 = MapGeoToRelativeScreen(METADATOS_NODOS[nodo].lat, METADATOS_NODOS[nodo].lon);
+      Vector2 p2 = MapGeoToRelativeScreen(METADATOS_NODOS[nodoDestino].lat, METADATOS_NODOS[nodoDestino].lon);
+      pair<int, int> absP1 = Coord((int) p1.x, (int) p1.y);
+      pair<int, int> absP2 = Coord((int) p2.x, (int) p2.y);
+      DrawLineEx({ (float) absP1.first, (float) absP1.second }, { (float) absP2.first, (float) absP2.second },
+                 5.0f, GREEN);
+    }
+  }
+
   // Dibujar intersecciones urbanas (Nodos)
   for (int i = 0; i < NUM_NODOS; i++) {
+    if (METADATOS_NODOS[i].lon == -67.6191116) {
+      continue;
+    }
     Vector2 p = MapGeoToRelativeScreen(METADATOS_NODOS[i].lat, METADATOS_NODOS[i].lon);
     pair<int, int> absP = Coord((int) p.x, (int) p.y);
     DrawCircle(absP.first, absP.second, 1.2f, MAROON);
   }
 
   // --- 2. INTERACCIÓN Y DETECCIÓN DE COORDENADAS ---
-  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && (ORIGEN == -1 || DESTINO == -1)) {
     float mx = (float) GetMouseX();
     float my = (float) GetMouseY();
+    int w = GetScreenWidth();
+    int h = GetScreenHeight();
 
-    // Comprobación de colisión para no capturar clics por debajo del botón "Hola we"
+    // Solo procesar clics dentro del área visible del mapa (80% central)
+    bool enElMapa = (mx >= w * 0.1f && mx <= w * 0.9f && my >= h * 0.1f && my <= h * 0.9f);
+
+    // Comprobación de colisión para no capturar clics en el botón
     pair<int, int> btnC = Coord(0, -100);
     bool clickEnBoton = (mx >= btnC.first - 100 && mx <= btnC.first + 100 &&
                          my >= btnC.second - 25 && my <= btnC.second + 25);
 
-    if (!clickEnBoton) {
+    if (enElMapa && !clickEnBoton) {
       mapaClickeado = true;
       MapMouseToGeo(mx, my, lastLat, lastLon);
+      nodoSeleccionado = NodoMasCercano(lastLat, lastLon);
+      if (ORIGEN == -1) {
+        ORIGEN = nodoSeleccionado;
+      } else {
+        DESTINO = nodoSeleccionado;
+      }
     }
   }
 
-  // Dibujar indicador visual del punto clickeado
-  if (mapaClickeado) {
-    Vector2 p = MapGeoToRelativeScreen(lastLat, lastLon);
-    pair<int, int> absP = Coord((int) p.x, (int) p.y);
-
-    DrawCircle(absP.first, absP.second, 5.0f, RED);
-    DrawCircleLines(absP.first, absP.second, 9.0f, WHITE);
-
-    string latStr = "Lat: " + to_string(lastLat);
-    string lonStr = "Lon: " + to_string(lastLon);
-    text(latStr.c_str(), 320, 280, 16, GREEN);
-    text(lonStr.c_str(), 320, 305, 16, GREEN);
+  if (IsKeyPressed(KEY_BACKSPACE)) {
+    ORIGEN = -1;
+    DESTINO = -1;
+    CAMINO_CALCULADO = false;
+    caminoCalculado.clear();
   }
 
+  // Dibujar indicador del nodo más cercano seleccionado
+  if (nodoSeleccionado != -1) {
+    double nodLat = METADATOS_NODOS[nodoSeleccionado].lat;
+    double nodLon = METADATOS_NODOS[nodoSeleccionado].lon;
+
+    Vector2 pNodo = MapGeoToRelativeScreen(nodLat, nodLon);
+    pair<int, int> absNodo = Coord((int) pNodo.x, (int) pNodo.y);
+
+    DrawCircle(absNodo.first, absNodo.second, 6.0f, YELLOW);
+    DrawCircleLines(absNodo.first, absNodo.second, 10.0f, ORANGE);
+
+    string idxStr = "Nodo: " + to_string(nodoSeleccionado);
+    string latStr = "Lat: " + to_string(nodLat);
+    string lonStr = "Lon: " + to_string(nodLon);
+    text(idxStr.c_str(), 320, 255, 16, YELLOW);
+    text(latStr.c_str(), 320, 280, 16, YELLOW);
+    text(lonStr.c_str(), 320, 305, 16, YELLOW);
+  }
+
+  if (ORIGEN != -1) {
+    double nodLat = METADATOS_NODOS[ORIGEN].lat;
+    double nodLon = METADATOS_NODOS[ORIGEN].lon;
+
+    Vector2 pNodo = MapGeoToRelativeScreen(nodLat, nodLon);
+    pair<int, int> absNodo = Coord((int) pNodo.x, (int) pNodo.y);
+
+    DrawCircle(absNodo.first, absNodo.second, 6.0f, RED);
+    DrawCircleLines(absNodo.first, absNodo.second, 10.0f, RED);
+
+    string idxStr = "Nodo: " + to_string(ORIGEN);
+    string latStr = "Lat: " + to_string(nodLat);
+    string lonStr = "Lon: " + to_string(nodLon);
+    text(idxStr.c_str(), 320, 330, 16, RED);
+    text(latStr.c_str(), 320, 355, 16, RED);
+    text(lonStr.c_str(), 320, 380, 16, RED);
+  }
+
+  if (DESTINO != -1) {
+    double nodLat = METADATOS_NODOS[DESTINO].lat;
+    double nodLon = METADATOS_NODOS[DESTINO].lon;
+
+    Vector2 pNodo = MapGeoToRelativeScreen(nodLat, nodLon);
+    pair<int, int> absNodo = Coord((int) pNodo.x, (int) pNodo.y);
+
+    DrawCircle(absNodo.first, absNodo.second, 6.0f, BLUE);
+    DrawCircleLines(absNodo.first, absNodo.second, 10.0f, BLUE);
+
+    string idxStr = "Nodo: " + to_string(DESTINO);
+    string latStr = "Lat: " + to_string(nodLat);
+    string lonStr = "Lon: " + to_string(nodLon);
+    text(idxStr.c_str(), 320, 255, 16, BLUE);
+    text(latStr.c_str(), 320, 280, 16, BLUE);
+    text(lonStr.c_str(), 320, 305, 16, BLUE);
+  }
+
+  // --- 4. BORDES ---
+  // Tapan el 10% de margen en cada lado para ocultar nodos/aristas que salen del área del mapa
+  int w = GetScreenWidth();
+  int h = GetScreenHeight();
+  int margenX = (int) (w * 0.1f);
+  int margenY = (int) (h * 0.1f);
+  Color colorBorde = RAYWHITE;
+  DrawRectangle(0, 0, w, margenY, colorBorde);           // arriba
+  DrawRectangle(0, h - margenY, w, margenY, colorBorde); // abajo
+  DrawRectangle(0, 0, margenX, h, colorBorde);           // izquierda
+  DrawRectangle(w - margenX, 0, margenX, h, colorBorde); // derecha
   // --- 3. BOTONES Y MENÚS DEL SISTEMA ---
   vector<Button> buttons;
-
-  addButton(0, 400, 200, 50, "Hola we", buttons);
-  if (isButtonPressed(buttons[0])) {
-    cout << buttons[0].text << "\n";
+  if (ORIGEN != -1 && DESTINO != -1) {
+    addButton(0, 400, 200, 50, "Calcular Djikstra", buttons);
+    if (isButtonPressed(buttons[0]) && !CAMINO_CALCULADO) {
+      vector<double> distancia;
+      vector<int> prev;
+      djikstra(ORIGEN, distancia, prev);
+      caminoCalculado = ReconstruirCamino(prev, DESTINO);
+      CAMINO_CALCULADO = true;
+    }
   }
   buttons.clear();
 }
