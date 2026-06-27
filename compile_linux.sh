@@ -1,0 +1,1 @@
+g++ src/*.cpp src/utils/*.cpp src/opciones/*.cpp -o main -Iinclude -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
