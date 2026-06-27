@@ -1,7 +1,7 @@
 #include "raylib.h"
 #include <bits/stdc++.h>
 #include "../include/opcion1.h"
-#include "../include/mochila.h"
+#include "../include/interfazMochila.h"
 #include "../include/utils.h"
 #include "../include/grafo_la_paz.h"
 using namespace std;
@@ -63,7 +63,7 @@ int main() {
     } else if (state == "mochila_bb") {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
-      drawMochila();
+      drawInterfazMochila();
     }
 
     EndDrawing();
