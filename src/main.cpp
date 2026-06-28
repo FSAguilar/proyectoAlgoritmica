@@ -1,12 +1,8 @@
 #include "raylib.h"
 #include <bits/stdc++.h>
 #include "../include/opcion1.h"
-<<<<<<< HEAD
 #include "../include/interfazMochila.h"
-=======
-#include "../include/mochila.h"
 #include "../include/cola_prioridad.h"
->>>>>>> 8f8a6d0 (compliacion_linux)
 #include "../include/utils.h"
 #include "../include/grafo_la_paz.h"
 using namespace std;
@@ -68,15 +64,11 @@ int main() {
     } else if (state == "mochila_bb") {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
-<<<<<<< HEAD
       drawInterfazMochila();
-=======
-      drawMochila();
     } else if (state == "cola_prioridad") {
       ClearBackground(RAYWHITE);
       DrawText(state.c_str(), 0, 0, 20, BLACK);
       drawColaPrioridad();
->>>>>>> 8f8a6d0 (compliacion_linux)
     }
 
     EndDrawing();
