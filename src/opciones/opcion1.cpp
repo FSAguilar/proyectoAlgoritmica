@@ -81,9 +81,7 @@ static bool panActivo = false;
 static float panMousePrevX = 0.0f;
 static float panMousePrevY = 0.0f;
 
-void drawOpcion1() {
-  // --- 0. ZOOM Y PAN ---
-
+static void procesarZoomYPan() {
   // Zoom con rueda del mouse, centrado en la posición del cursor
   float rueda = GetMouseWheelMove();
   if (rueda != 0.0f) {
@@ -147,8 +145,9 @@ void drawOpcion1() {
     EAST += deltaLon;
     WEST += deltaLon;
   }
-  // --- 1. FONDO DEL MAPA ---
+}
 
+static void dibujarFondoMapa() {
   // Cargar textura la primera vez
   if (!texturaMapaCargada) {
     texturaMapa = LoadTexture("mapa_fondo.png");
@@ -174,8 +173,9 @@ void drawOpcion1() {
     Rectangle destino = { margenX, margenY, w * 0.8f, h * 0.8f };
     DrawTexturePro(texturaMapa, fuente, destino, { 0, 0 }, 0.0f, WHITE);
   }
+}
 
-  // --- 2. RENDERIZADO DE CALLES Y AVENIDAS (GRAFO) ---
+static void dibujarCalles() {
   for (int u = 0; u < NUM_NODOS; u++) {
     if (METADATOS_NODOS[u].lon == -67.6191116) {
       continue;
@@ -196,7 +196,9 @@ void drawOpcion1() {
       DrawLine(absP1.first, absP1.second, absP2.first, absP2.second, DARKGRAY);
     }
   }
+}
 
+static void dibujarCaminoCalculado() {
   if (CAMINO_CALCULADO && ORIGEN != -1 && DESTINO != -1) {
     for (int i = 0; i < (int) caminoCalculado.size() - 1; i++) {
       int nodo = caminoCalculado[i];
@@ -209,8 +211,9 @@ void drawOpcion1() {
                  5.0f, GREEN);
     }
   }
+}
 
-  // Dibujar intersecciones urbanas (Nodos)
+static void dibujarNodos() {
   for (int i = 0; i < NUM_NODOS; i++) {
     if (METADATOS_NODOS[i].lon == -67.6191116) {
       continue;
@@ -219,8 +222,9 @@ void drawOpcion1() {
     pair<int, int> absP = Coord((int) p.x, (int) p.y);
     DrawCircle(absP.first, absP.second, 1.2f, MAROON);
   }
+}
 
-  // --- 2. INTERACCIÓN Y DETECCIÓN DE COORDENADAS ---
+static void procesarInteraccion() {
   if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && (ORIGEN == -1 || DESTINO == -1)) {
     float mx = (float) GetMouseX();
     float my = (float) GetMouseY();
@@ -253,7 +257,9 @@ void drawOpcion1() {
     CAMINO_CALCULADO = false;
     caminoCalculado.clear();
   }
+}
 
+static void dibujarIndicadores() {
   // Dibujar indicador del nodo más cercano seleccionado
   if (nodoSeleccionado != -1) {
     double nodLat = METADATOS_NODOS[nodoSeleccionado].lat;
@@ -308,8 +314,9 @@ void drawOpcion1() {
     text(latStr.c_str(), 320, 280, 16, BLUE);
     text(lonStr.c_str(), 320, 305, 16, BLUE);
   }
+}
 
-  // --- 4. BORDES ---
+static void dibujarBordes() {
   // Tapan el 10% de margen en cada lado para ocultar nodos/aristas que salen del área del mapa
   int w = GetScreenWidth();
   int h = GetScreenHeight();
@@ -320,7 +327,9 @@ void drawOpcion1() {
   DrawRectangle(0, h - margenY, w, margenY, colorBorde); // abajo
   DrawRectangle(0, 0, margenX, h, colorBorde);           // izquierda
   DrawRectangle(w - margenX, 0, margenX, h, colorBorde); // derecha
-  // --- 3. BOTONES Y MENÚS DEL SISTEMA ---
+}
+
+static void dibujarBotonesYMenues() {
   vector<Button> buttons;
   if (ORIGEN != -1 && DESTINO != -1) {
     addButton(0, 400, 200, 50, "Calcular Djikstra", buttons);
@@ -333,4 +342,28 @@ void drawOpcion1() {
     }
   }
   buttons.clear();
+}
+
+void drawOpcion1() {
+  // Para ir a la declaración de una función = Ctrl + Click Izquierdo
+  //  --- 0. ZOOM Y PAN ---
+  procesarZoomYPan();
+
+  // --- 1. FONDO DEL MAPA ---
+  dibujarFondoMapa();
+
+  // --- 2. RENDERIZADO DE CALLES Y AVENIDAS (GRAFO) ---
+  dibujarCalles();
+  dibujarCaminoCalculado();
+  dibujarNodos();
+
+  // --- 2. INTERACCIÓN Y DETECCIÓN DE COORDENADAS ---
+  procesarInteraccion();
+  dibujarIndicadores();
+
+  // --- 4. BORDES ---
+  dibujarBordes();
+
+  // --- 3. BOTONES Y MENÚS DEL SISTEMA ---
+  dibujarBotonesYMenues();
 }
