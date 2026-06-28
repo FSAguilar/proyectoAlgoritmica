@@ -66,6 +66,14 @@ static double lastLon = 0.0;
 static int nodoSeleccionado = -1;
 static vector<int> caminoCalculado; // Resultado del último Dijkstra
 
+static bool ELIGIENDO_BLOQUEOS = false;
+static bool TIENE_BLOQUEO = false;
+static double BLOQUEO_LAT1 = 0.0;
+static double BLOQUEO_LON1 = 0.0;
+static double BLOQUEO_LAT2 = 0.0;
+static double BLOQUEO_LON2 = 0.0;
+static int CLICKS_BLOQUEO = 0;
+
 // Textura de fondo del mapa (se carga una sola vez)
 static Texture2D texturaMapa = { 0 };
 static bool texturaMapaCargada = false;
@@ -225,7 +233,7 @@ static void dibujarNodos() {
 }
 
 static void procesarInteraccion() {
-  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && (ORIGEN == -1 || DESTINO == -1)) {
+  if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && (ELIGIENDO_BLOQUEOS || ORIGEN == -1 || DESTINO == -1)) {
     float mx = (float) GetMouseX();
     float my = (float) GetMouseY();
     int w = GetScreenWidth();
@@ -239,14 +247,51 @@ static void procesarInteraccion() {
     bool clickEnBoton = (mx >= btnC.first - 100 && mx <= btnC.first + 100 &&
                          my >= btnC.second - 25 && my <= btnC.second + 25);
 
-    if (enElMapa && !clickEnBoton) {
-      mapaClickeado = true;
-      MapMouseToGeo(mx, my, lastLat, lastLon);
-      nodoSeleccionado = NodoMasCercano(lastLat, lastLon);
-      if (ORIGEN == -1) {
-        ORIGEN = nodoSeleccionado;
+    // Comprobación de colisión para no capturar clics en los selectores de zonas
+    bool clickEnZona = false;
+    for (int yTarget : { -450, -400, -350, -300, -250 }) {
+      pair<int, int> zc = Coord(400, yTarget);
+      if (mx >= zc.first - 80 && mx <= zc.first + 80 &&
+          my >= zc.second - 18 && my <= zc.second + 18) {
+        clickEnZona = true;
+        break;
+      }
+    }
+
+    // Comprobación de colisión para no capturar clics en los botones del panel inferior
+    bool clickEnBotonInferior = (mx >= w / 2 - 330 && mx <= w / 2 + 330 &&
+                                 my >= h / 2 + 370 && my <= h / 2 + 430);
+
+    if (enElMapa && !clickEnBoton && !clickEnZona && !clickEnBotonInferior) {
+      if (ELIGIENDO_BLOQUEOS) {
+        double clickedLat, clickedLon;
+        MapMouseToGeo(mx, my, clickedLat, clickedLon);
+        if (CLICKS_BLOQUEO == 0) {
+          BLOQUEO_LAT1 = clickedLat;
+          BLOQUEO_LON1 = clickedLon;
+          CLICKS_BLOQUEO = 1;
+          TIENE_BLOQUEO = false;
+        } else if (CLICKS_BLOQUEO == 1) {
+          BLOQUEO_LAT2 = clickedLat;
+          BLOQUEO_LON2 = clickedLon;
+          CLICKS_BLOQUEO = 2;
+          TIENE_BLOQUEO = true;
+          ELIGIENDO_BLOQUEOS = false;
+        } else {
+          BLOQUEO_LAT1 = clickedLat;
+          BLOQUEO_LON1 = clickedLon;
+          CLICKS_BLOQUEO = 1;
+          TIENE_BLOQUEO = false;
+        }
       } else {
-        DESTINO = nodoSeleccionado;
+        mapaClickeado = true;
+        MapMouseToGeo(mx, my, lastLat, lastLon);
+        nodoSeleccionado = NodoMasCercano(lastLat, lastLon);
+        if (ORIGEN == -1) {
+          ORIGEN = nodoSeleccionado;
+        } else {
+          DESTINO = nodoSeleccionado;
+        }
       }
     }
   }
@@ -256,6 +301,9 @@ static void procesarInteraccion() {
     DESTINO = -1;
     CAMINO_CALCULADO = false;
     caminoCalculado.clear();
+    TIENE_BLOQUEO = false;
+    CLICKS_BLOQUEO = 0;
+    ELIGIENDO_BLOQUEOS = false;
   }
 }
 
@@ -331,17 +379,113 @@ static void dibujarBordes() {
 
 static void dibujarBotonesYMenues() {
   vector<Button> buttons;
+
+  // Botones de Bloqueo (siempre visibles)
+  string txtBloqueo = ELIGIENDO_BLOQUEOS ? "Bloqueo: Dibujar..." : "Dibujar Bloqueo";
+  addButton(-220, 400, 200, 50, txtBloqueo, buttons);
+  Button btnModoBloqueo = buttons.back();
+
+  addButton(220, 400, 200, 50, "Limpiar", buttons);
+  Button btnLimpiarBloqueo = buttons.back();
+
+  if (isButtonPressed(btnModoBloqueo)) {
+    ELIGIENDO_BLOQUEOS = !ELIGIENDO_BLOQUEOS;
+    if (ELIGIENDO_BLOQUEOS) {
+      CLICKS_BLOQUEO = 0;
+      TIENE_BLOQUEO = false;
+    }
+  }
+
+  if (isButtonPressed(btnLimpiarBloqueo)) {
+    TIENE_BLOQUEO = false;
+    CLICKS_BLOQUEO = 0;
+    ELIGIENDO_BLOQUEOS = false;
+    CAMINO_CALCULADO = false;
+    caminoCalculado.clear();
+  }
+
+  // Botón Calcular Dijkstra (solo si origen y destino están seleccionados)
   if (ORIGEN != -1 && DESTINO != -1) {
     addButton(0, 400, 200, 50, "Calcular Djikstra", buttons);
-    if (isButtonPressed(buttons[0]) && !CAMINO_CALCULADO) {
+    Button btnDijkstra = buttons.back();
+    if (isButtonPressed(btnDijkstra) && !CAMINO_CALCULADO) {
       vector<double> distancia;
       vector<int> prev;
-      djikstra(ORIGEN, distancia, prev);
+      djikstra(ORIGEN, distancia, prev, BLOQUEO_LAT1, BLOQUEO_LON1, BLOQUEO_LAT2, BLOQUEO_LON2, TIENE_BLOQUEO);
       caminoCalculado = ReconstruirCamino(prev, DESTINO);
       CAMINO_CALCULADO = true;
     }
   }
   buttons.clear();
+
+  // Dibujar selectores de zonas
+  vector<Button> zoneButtons;
+  text("Zonas:", 400, -485, 18, DARKGRAY);
+
+  addButton(400, -450, 160, 36, "Miraflores", zoneButtons);
+  addButton(400, -400, 160, 36, "Sopocachi", zoneButtons);
+  addButton(400, -350, 160, 36, "Obrajes", zoneButtons);
+  addButton(400, -300, 160, 36, "Calacoto", zoneButtons);
+  addButton(400, -250, 160, 36, "Irpavi", zoneButtons);
+
+  struct ZoneCoord {
+    double lat;
+    double lon;
+  };
+  vector<ZoneCoord> zoneCoords = {
+    { -16.5055, -68.1222 },  // Miraflores
+    { -16.5108, -68.1275 },  // Sopocachi
+    { -16.52171, -68.1157 }, // Obrajes (Calle 0)
+    { -16.5397, -68.0856 },  // Calacoto (Calle 8)
+    { -16.528, -68.083 }     // Irpavi
+  };
+
+  for (size_t i = 0; i < zoneButtons.size(); i++) {
+    if (isButtonPressed(zoneButtons[i])) {
+      double targetLat = zoneCoords[i].lat;
+      double targetLon = zoneCoords[i].lon;
+      double halfHeight = (NORTH - SOUTH) / 2.0;
+      double halfWidth = (EAST - WEST) / 2.0;
+      NORTH = targetLat + halfHeight;
+      SOUTH = targetLat - halfHeight;
+      WEST = targetLon - halfWidth;
+      EAST = targetLon + halfWidth;
+      break;
+    }
+  }
+}
+
+static void dibujarBloqueo() {
+  if (CLICKS_BLOQUEO >= 1) {
+    double lat2 = (CLICKS_BLOQUEO == 2) ? BLOQUEO_LAT2 : 0.0;
+    double lon2 = (CLICKS_BLOQUEO == 2) ? BLOQUEO_LON2 : 0.0;
+
+    if (CLICKS_BLOQUEO == 1) {
+      float mx = (float) GetMouseX();
+      float my = (float) GetMouseY();
+      MapMouseToGeo(mx, my, lat2, lon2);
+    }
+
+    Vector2 p1 = MapGeoToRelativeScreen(BLOQUEO_LAT1, BLOQUEO_LON1);
+    Vector2 p2 = MapGeoToRelativeScreen(lat2, lon2);
+
+    pair<int, int> absP1 = Coord((int) p1.x, (int) p1.y);
+    pair<int, int> absP2 = Coord((int) p2.x, (int) p2.y);
+
+    int minX = min(absP1.first, absP2.first);
+    int maxX = max(absP1.first, absP2.first);
+    int minY = min(absP1.second, absP2.second);
+    int maxY = max(absP1.second, absP2.second);
+
+    int width = maxX - minX;
+    int height = maxY - minY;
+
+    Color relleno = { 253, 249, 0, 80 };
+    Color borde = { 253, 249, 0, 255 };
+
+    DrawRectangle(minX, minY, width, height, relleno);
+    DrawRectangleLinesEx(Rectangle{ (float) minX, (float) minY, (float) width, (float) height }, 3.0f, borde);
+  }
 }
 
 void drawOpcion1() {
@@ -356,6 +500,7 @@ void drawOpcion1() {
   dibujarCalles();
   dibujarCaminoCalculado();
   dibujarNodos();
+  dibujarBloqueo();
 
   // --- 2. INTERACCIÓN Y DETECCIÓN DE COORDENADAS ---
   procesarInteraccion();

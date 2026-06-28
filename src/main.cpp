@@ -57,20 +57,27 @@ int main() {
         state = "cola_prioridad";
       }
       buttons.clear();
-    } else if (state == "camino mas corto") {
-      ClearBackground({ 13, 17, 23, 255 });
-      drawOpcion1();
-      DrawText(state.c_str(), 0, 0, 20, BLACK);
-    } else if (state == "mochila_bb") {
-      ClearBackground(RAYWHITE);
-      DrawText(state.c_str(), 0, 0, 20, BLACK);
-      drawInterfazMochila();
-    } else if (state == "cola_prioridad") {
-      ClearBackground(RAYWHITE);
-      DrawText(state.c_str(), 0, 0, 20, BLACK);
-      drawColaPrioridad();
-    }
+    } else {
 
+      if (state == "camino mas corto") {
+        ClearBackground({ 13, 17, 23, 255 });
+        drawOpcion1();
+        DrawText(state.c_str(), 0, 0, 20, BLACK);
+      } else if (state == "mochila_bb") {
+        ClearBackground(RAYWHITE);
+        DrawText(state.c_str(), 0, 0, 20, BLACK);
+        drawInterfazMochila();
+      } else if (state == "cola_prioridad") {
+        ClearBackground(RAYWHITE);
+        DrawText(state.c_str(), 0, 0, 20, BLACK);
+        drawColaPrioridad();
+      }
+      addButton(-400, -430, 200, 50, "Menu", buttons);
+      if (isButtonPressed(buttons[0])) {
+        state = "menu";
+      }
+    }
+    buttons.clear();
     EndDrawing();
   }
   CloseWindow();
