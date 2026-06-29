@@ -27,7 +27,7 @@ int main() {
 
   std::cout << "Mapa cargado con éxito. Nodos: " << NUM_NODOS << std::endl;
 
-  // Estado actual de navegación ("menu", "camino mas corto", "mochila_bb", "cola_prioridad")
+  // Estado actual de navegación ("menu", "camino mas corto", "mochila", "cola_prioridad")
   string state = "menu";
 
   // Vector temporal para detectar la interacción con los botones en cada frame
@@ -55,7 +55,7 @@ int main() {
 
       // Dibujar botones principales de navegación
       addButton(0, -100, 200, 50, "Camino mas corto", buttons);
-      addButton(0, 0, 200, 50, "Mochila bb", buttons);
+      addButton(0, 0, 200, 50, "Mochila", buttons);
       addButton(0, 100, 200, 50, "Cola de Prioridad", buttons);
 
       // Manejar la transición de estado al hacer clic en los botones
@@ -65,14 +65,14 @@ int main() {
       }
       if (isButtonPressed(buttons[1])) {
         cout << buttons[1].text << "\n";
-        state = "mochila_bb";
+        state = "mochila";
       }
       if (isButtonPressed(buttons[2])) {
         cout << buttons[2].text << "\n";
         state = "cola_prioridad";
       }
       buttons.clear();
-    } 
+    }
     // ─── ESTADO: PANTALLAS DE TRABAJO (Con botón de retroceso a menú) ───────
     else {
 
@@ -81,7 +81,7 @@ int main() {
         ClearBackground({ 13, 17, 23, 255 });
         drawInterfazDjikstra();
         DrawText(state.c_str(), 0, 0, 20, BLACK);
-      } else if (state == "mochila_bb") {
+      } else if (state == "mochila") {
         ClearBackground(RAYWHITE);
         DrawText(state.c_str(), 0, 0, 20, BLACK);
         drawInterfazMochila();
@@ -90,18 +90,18 @@ int main() {
         DrawText(state.c_str(), 0, 0, 20, BLACK);
         drawColaPrioridad();
       }
-      
+
       // Dibujar botón flotante en la esquina superior izquierda para regresar al menú
       addButton(-400, -430, 200, 50, "Menu", buttons);
       if (isButtonPressed(buttons[0])) {
         state = "menu";
       }
     }
-    
+
     buttons.clear();
     EndDrawing();
   }
-  
+
   // Cerrar el contexto de la ventana y liberar recursos gráficos de la GPU
   CloseWindow();
 
