@@ -8,39 +8,42 @@
 
 using namespace std;
 
+// Sub-estados internos para separar la captura de datos (presupuesto)
+// de la visualización de los resultados (lista de compras óptima sugerida).
 enum SubEstado { SUB_INPUT, SUB_RESULTADOS };
 
-// ─── Color por categoría ─────────────────────────────────────────────────────
+// ─── Asigna un color identificativo a cada categoría de productos ────────────────
 static Color colorCategoria(const string& cat) {
-    if (cat == "Despensa") return { 34, 139, 34, 255 };
-    if (cat == "Lácteos")  return { 70, 130, 180, 255 };
-    if (cat == "Carnes")   return { 178, 34, 34, 255 };
-    if (cat == "Limpieza") return { 218, 165, 32, 255 };
-    if (cat == "Bebidas")  return { 148, 0, 211, 255 };
+    if (cat == "Despensa") return { 34, 139, 34, 255 };  // Verde bosque
+    if (cat == "Lácteos")  return { 70, 130, 180, 255 }; // Azul acero
+    if (cat == "Carnes")   return { 178, 34, 34, 255 };  // Rojo fuego
+    if (cat == "Limpieza") return { 218, 165, 32, 255 }; // Dorado/Amarillo
+    if (cat == "Bebidas")  return { 148, 0, 211, 255 };  // Violeta
     return DARKGRAY;
 }
 
-// ─── Tabla de catálogo con scroll interno ────────────────────────────────────
-// El panel permanece fijo; solo las filas se desplazan con un scissor/clip.
+// ─── Dibuja la tabla de catálogo con scroll por rueda del ratón ──────────────────
+// Utiliza coordenadas relativas para posicionarse y dibuja solo las filas que
+// asoman dentro de la caja visible (clip manual/scissor visual).
 static void drawCatalogo(const vector<Item>& catalogo, int scrollY) {
-    const int ROW_H      = 24;
-    const int MAX_ROWS   = 10;   // filas visibles a la vez
-    const int PANEL_W    = 680;
-    const int HEADER_H   = 30;   // alto del encabezado fijo
-    const int BODY_H     = MAX_ROWS * ROW_H;  // 240 px
-    const int HINT_H     = 18;
+    const int ROW_H      = 24;   // Alto de cada fila en píxeles
+    const int MAX_ROWS   = 10;   // Número máximo de filas visibles a la vez
+    const int PANEL_W    = 680;  // Ancho del catálogo
+    const int HEADER_H   = 30;   // Alto del encabezado fijo
+    const int BODY_H     = MAX_ROWS * ROW_H;  // Alto del cuerpo de la tabla (240px)
+    const int HINT_H     = 18;   // Leyenda informativa inferior
     const int PANEL_H    = HEADER_H + BODY_H + HINT_H + 4;
 
-    // Posición fija del panel (NO depende de scrollY)
+    // Posición de anclaje del panel (relativo al centro de la ventana)
     pair<int,int> orig = Coord(-340, -160);
     int px = orig.first;
     int py = orig.second;
 
-    // Fondo del panel
+    // Fondo grisáceo claro del catálogo
     DrawRectangle(px, py, PANEL_W, PANEL_H, { 245, 245, 245, 255 });
     DrawRectangleLines(px, py, PANEL_W, PANEL_H, LIGHTGRAY);
 
-    // ── Encabezado fijo ───────────────────────────────────────────────────
+    // ── Encabezado fijo (no se desplaza con el scroll) ─────────────────────────────
     int hx = px + 8;
     int hy = py + 8;
     DrawText("PRODUCTO",    hx,       hy, 14, DARKGRAY);
@@ -48,34 +51,34 @@ static void drawCatalogo(const vector<Item>& catalogo, int scrollY) {
     DrawText("PRECIO (Bs)", hx + 520, hy, 14, DARKGRAY);
     DrawLine(px, py + HEADER_H, px + PANEL_W, py + HEADER_H, LIGHTGRAY);
 
-    // ── Filas con scroll ──────────────────────────────────────────────────
-    // Área visible del cuerpo (clip manual: solo dibujamos si la fila cae dentro)
+    // ── Filas con desplazamiento ───────────────────────────────────────────────────
     int bodyTop    = py + HEADER_H;
     int bodyBottom = bodyTop + BODY_H;
 
+    // Calcular el rango de índices de productos que caen dentro del área visible
     int startIdx = scrollY / ROW_H;
     int endIdx   = min((int)catalogo.size(), startIdx + MAX_ROWS + 1);
 
-    // Offset en píxeles dentro de la fila de inicio
+    // Desplazamiento fino en píxeles de la primera fila cortada superior
     int pixelOffset = scrollY % ROW_H;
 
     for (int i = startIdx; i < endIdx; i++) {
         const Item& item = catalogo[i];
-        // posición Y real de la fila dentro del panel
+        // Posición Y de dibujo absoluta en pantalla
         int ry = bodyTop + (i - startIdx) * ROW_H - pixelOffset;
 
-        // Solo dibujamos si la fila está dentro del área visible
+        // Comprobación de seguridad: omitir si está completamente fuera por arriba o por abajo
         if (ry + ROW_H <= bodyTop) continue;
         if (ry >= bodyBottom)      break;
 
-        // Fondo alternado
+        // Alternancia de fondo blanco translúcido en filas pares
         if (i % 2 == 0) {
             int clipY    = max(ry, bodyTop);
             int clipH    = min(ry + ROW_H, bodyBottom) - clipY;
             DrawRectangle(px + 1, clipY, PANEL_W - 2, clipH, { 255, 255, 255, 200 });
         }
 
-        // Solo dibujamos el texto si la fila al menos asoma por arriba del clip
+        // Dibujar etiquetas de texto (solo si la fila es visible en la caja)
         if (ry + 2 >= bodyTop && ry < bodyBottom) {
             DrawText(item.nombre.c_str(),    hx,       ry + 4, 14, BLACK);
             DrawText(item.categoria.c_str(), hx + 280, ry + 4, 14, colorCategoria(item.categoria));
@@ -84,15 +87,16 @@ static void drawCatalogo(const vector<Item>& catalogo, int scrollY) {
         }
     }
 
-    // ── Hint de scroll ────────────────────────────────────────────────────
+    // ── Indicador inferior de scroll ───────────────────────────────────────────────
     if ((int)catalogo.size() > MAX_ROWS) {
         DrawText("[ Rueda del ratón para desplazar ]",
                  px + 8, bodyBottom + 3, 12, GRAY);
     }
 }
 
-// ─── Interfaz principal ───────────────────────────────────────────────────────
+// ─── Interfaz principal de control ───────────────────────────────────────────
 void drawInterfazMochila() {
+    // Variables persistentes que conservan su valor entre frames sucesivos para la GUI
     static SubEstado estadoActual  = SUB_INPUT;
     static string    presupuestoStr = "";
     static int       presupuestoFinal = 0;
@@ -105,12 +109,14 @@ void drawInterfazMochila() {
     vector<Button> buttons;
 
     // ════════════════════════════════════════════════════════════════════════
+    // SUB-ESTADO: Captura de presupuesto y visualización de catálogo
+    // ════════════════════════════════════════════════════════════════════════
     if (estadoActual == SUB_INPUT) {
 
         text("OPTIMIZADOR DE COMPRAS", 0, -270, 26, MAROON);
         text("Hipermaxi — Catálogo disponible hoy", 0, -240, 16, DARKGRAY);
 
-        // Scroll del catálogo
+        // Desplazamiento por scroll de la lista del catálogo
         float wheel = GetMouseWheelMove();
         if (wheel != 0.0f) {
             const int ROW_H    = 24;
@@ -120,19 +126,23 @@ void drawInterfazMochila() {
             if (catalogoScroll < 0)          catalogoScroll = 0;
             if (catalogoScroll > maxScroll)   catalogoScroll = maxScroll;
         }
+        
+        // Dibujar el panel del catálogo con el scroll calculado
         drawCatalogo(catalogo, catalogoScroll);
 
-        // ── Caja de presupuesto ───────────────────────────────────────────
+        // ── Caja de texto interactiva para presupuesto ───────────────────────
         text("Ingresa tu presupuesto:", -150, 200, 18, DARKGRAY);
 
+        // Si la caja de texto está activa, se dibuja con borde púrpura, sino gris claro
         Color colorCaja = cajaActiva ? PURPLE : LIGHTGRAY;
         Rect(80, 200, 180, 42, colorCaja);
 
         if (!presupuestoStr.empty())
             text((presupuestoStr + " Bs").c_str(), 80, 200, 22, WHITE);
         else
-            text("Ej. 150", 80, 200, 22, { 200, 200, 200, 255 });
+            text("Ej. 150", 80, 200, 22, { 200, 200, 200, 255 }); // Placeholder
 
+        // Detectar si el usuario hace clic dentro de la caja de presupuesto
         pair<int,int> posCaja = Coord(80, 200);
         int mx = GetMouseX(), my = GetMouseY();
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -141,6 +151,7 @@ void drawInterfazMochila() {
             cajaActiva = sobre;
         }
 
+        // Si la caja está enfocada/activa, capturamos los caracteres numéricos introducidos
         if (cajaActiva) {
             int key = GetCharPressed();
             while (key > 0) {
@@ -148,47 +159,54 @@ void drawInterfazMochila() {
                     presupuestoStr += (char)key;
                 key = GetCharPressed();
             }
+            // Soporte para borrar caracteres con Backspace
             if (IsKeyPressed(KEY_BACKSPACE) && !presupuestoStr.empty())
                 presupuestoStr.pop_back();
         }
 
+        // Registrar botón para calcular la mochila
         addButton(80, 260, 275, 42, "Calcular compra óptima", buttons);
 
+        // Transicionar al subestado de resultados si se hace clic en calcular o se pulsa Enter
         if ((isButtonPressed(buttons[0]) || (cajaActiva && IsKeyPressed(KEY_ENTER))) &&
             !presupuestoStr.empty()) {
             presupuestoFinal = stoi(presupuestoStr);
+            // Ejecutamos el algoritmo de Programación Dinámica
             resultado        = resolverMochila(presupuestoFinal, catalogo);
             estadoActual     = SUB_RESULTADOS;
         }
     }
 
     // ════════════════════════════════════════════════════════════════════════
+    // SUB-ESTADO: Visualización de resultados (Productos recomendados)
+    // ════════════════════════════════════════════════════════════════════════
     else if (estadoActual == SUB_RESULTADOS) {
 
         text("COMPRA ÓPTIMA SUGERIDA", 0, -270, 24, MAROON);
 
+        // Mostrar resumen general de compras
         string resumen = "Presupuesto: " + to_string(presupuestoFinal) +
                          " Bs  |  Gasto: "  + to_string(resultado.costoTotal) +
                          " Bs  |  Vuelto: " +
                          to_string(presupuestoFinal - resultado.costoTotal) + " Bs";
         text(resumen.c_str(), 0, -240, 15, DARKGRAY);
 
-        // ── Constantes de layout ──────────────────────────────────────────
+        // ── Constantes visuales de diseño del carrito ───────────────────────
         const int ROW_H    = 24;
-        const int MAX_ROWS = 10;   // filas visibles a la vez en el cuerpo
-        const int HEADER_H = 32;   // barra roja "CARRITO"
-        const int COL_H    = 30;   // fila de encabezado de columnas
-        const int BODY_H   = MAX_ROWS * ROW_H;   // área scrolleable fija
-        const int FOOT_H   = 30;   // pie con el total
-        const int HINT_H   = 18;
-        const int PANEL_W  = 600;
+        const int MAX_ROWS = 10;   // Filas visibles a la vez
+        const int HEADER_H = 32;   // Cabecera del panel de compras
+        const int COL_H    = 30;   // Nombres de las columnas
+        const int BODY_H   = MAX_ROWS * ROW_H; // Altura fija de filas (240px)
+        const int FOOT_H   = 30;   // Pie con la suma total
+        const int HINT_H   = 18;   // Leyenda de desplazamiento
+        const int PANEL_W  = 600;  // Ancho de la tabla de resultados
         const int PANEL_H  = HEADER_H + COL_H + BODY_H + FOOT_H + HINT_H + 4;
 
         pair<int,int> orig = Coord(-300, -220);
         int px = orig.first;
         int py = orig.second;
 
-        // ── Scroll del carrito ────────────────────────────────────────────
+        // ── Desplazamiento del carrito por scroll ────────────────────────────
         int totalItems = (int)resultado.itemsSeleccionados.size();
         float wheel = GetMouseWheelMove();
         if (wheel != 0.0f && totalItems > MAX_ROWS) {
@@ -198,15 +216,15 @@ void drawInterfazMochila() {
             if (carritoScroll > maxScroll)   carritoScroll = maxScroll;
         }
 
-        // ── Panel de fondo (tamaño fijo) ──────────────────────────────────
+        // ── Dibujar panel base ───────────────────────────────────────────────
         DrawRectangle(px, py, PANEL_W, PANEL_H, { 250, 250, 250, 255 });
         DrawRectangleLines(px, py, PANEL_W, PANEL_H, LIGHTGRAY);
 
-        // Barra roja de título
+        // Cabecera roja de compras
         DrawRectangle(px, py, PANEL_W, HEADER_H, { 139, 0, 0, 255 });
         DrawText("CARRITO DE COMPRAS", px + 12, py + 8, 17, WHITE);
 
-        // Encabezado de columnas (fijo, no scrollea)
+        // Nombres fijos de las columnas
         int cx  = px + 12;
         int cy  = py + HEADER_H + 6;
         DrawText("PRODUCTO",  cx,       cy, 13, DARKGRAY);
@@ -214,7 +232,7 @@ void drawInterfazMochila() {
         DrawText("PRECIO",    cx + 480, cy, 13, DARKGRAY);
         DrawLine(px, cy + 20, px + PANEL_W, cy + 20, LIGHTGRAY);
 
-        // ── Filas scrolleables ────────────────────────────────────────────
+        // ── Dibujar filas recomendadas (con soporte de scroll) ───────────────
         int bodyTop    = py + HEADER_H + COL_H;
         int bodyBottom = bodyTop + BODY_H;
 
@@ -230,16 +248,18 @@ void drawInterfazMochila() {
                 const Item& item = resultado.itemsSeleccionados[i];
                 int ry = bodyTop + (i - startIdx) * ROW_H - pixelOffset;
 
+                // Validación de bordes superior e inferior
                 if (ry + ROW_H <= bodyTop) continue;
                 if (ry >= bodyBottom)      break;
 
-                // Fondo alternado con clip
+                // Fondo de filas intercaladas
                 if (i % 2 == 0) {
                     int clipY = max(ry, bodyTop);
                     int clipH = min(ry + ROW_H, bodyBottom) - clipY;
                     DrawRectangle(px + 1, clipY, PANEL_W - 2, clipH, { 255, 255, 255, 200 });
                 }
 
+                // Escribir datos del producto seleccionado
                 if (ry + 2 >= bodyTop && ry < bodyBottom) {
                     DrawText(item.nombre.c_str(),    cx,       ry + 4, 14, BLACK);
                     DrawText(item.categoria.c_str(), cx + 280, ry + 4, 14, colorCategoria(item.categoria));
@@ -249,19 +269,18 @@ void drawInterfazMochila() {
             }
         }
 
-        // ── Pie fijo: línea + total ────────────────────────────────────────
+        // ── Pie de tabla con total y leyenda de scroll ───────────────────────
         int footY = bodyBottom;
         DrawLine(px, footY, px + PANEL_W, footY, GRAY);
         string total = "TOTAL: " + to_string(resultado.costoTotal) + " Bs";
         DrawText(total.c_str(), cx, footY + 6, 15, MAROON);
 
-        // Hint de scroll (solo si hay más filas que las visibles)
         if (totalItems > MAX_ROWS) {
             DrawText("[ Rueda del ratón para desplazar ]",
                      px + 8, footY + FOOT_H + 2, 12, GRAY);
         }
 
-        // ── Botón volver ──────────────────────────────────────────────────
+        // ── Botón para reiniciar presupuesto y regresar a captura ─────────────
         addButton(0, -30 + PANEL_H/2 + 36, 200, 42, "Nueva Compra", buttons);
         if (isButtonPressed(buttons[0])) {
             presupuestoStr = "";
