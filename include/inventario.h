@@ -10,7 +10,13 @@ struct Item {
     std::string categoria; // Categoría legible para la UI
 };
 
-// Función que devuelve el catálogo exclusivo de Hipermaxi
-std::vector<Item> obtenerInventarioHipermaxi();
+// Agrupa el nombre del supermercado con su catálogo de productos disponibles
+struct Mercado {
+    std::string nombre;
+    std::vector<Item> catalogo;
+};
+
+// Devuelve todos los supermercados disponibles, cada uno con su catálogo propio
+std::vector<Mercado> obtenerTodosLosMercados();
 
 #endif
