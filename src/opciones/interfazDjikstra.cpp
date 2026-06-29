@@ -136,7 +136,7 @@ static void procesarZoomYPan() {
     float my = (float) GetMouseY();
     int w = GetScreenWidth();
     int h = GetScreenHeight();
-    
+
     // Solo permitir paneo si el clic se realiza dentro del recuadro activo del mapa (80% central)
     bool enElMapa = (mx >= w * 0.1f && mx <= w * 0.9f && my >= h * 0.1f && my <= h * 0.9f);
     if (enElMapa) {
@@ -145,11 +145,11 @@ static void procesarZoomYPan() {
       panMousePrevY = my;
     }
   }
-  
+
   if (IsMouseButtonReleased(MOUSE_RIGHT_BUTTON)) {
     panActivo = false;
   }
-  
+
   if (panActivo) {
     float mx = (float) GetMouseX();
     float my = (float) GetMouseY();
@@ -197,7 +197,7 @@ static void dibujarFondoMapa() {
     float margenY = h * 0.1f;
     Rectangle fuente = { srcX, srcY, srcW, srcH };
     Rectangle destino = { margenX, margenY, w * 0.8f, h * 0.8f };
-    
+
     // Dibujar la textura estirada y recortada usando transformaciones de Raylib
     DrawTexturePro(texturaMapa, fuente, destino, { 0, 0 }, 0.0f, WHITE);
   }
@@ -236,13 +236,13 @@ static void dibujarCaminoCalculado() {
     for (int i = 0; i < (int) caminoCalculado.size() - 1; i++) {
       int nodo = caminoCalculado[i];
       int nodoDestino = caminoCalculado[i + 1];
-      
+
       // Obtener las coordenadas del segmento
       Vector2 p1 = MapGeoToRelativeScreen(METADATOS_NODOS[nodo].lat, METADATOS_NODOS[nodo].lon);
       Vector2 p2 = MapGeoToRelativeScreen(METADATOS_NODOS[nodoDestino].lat, METADATOS_NODOS[nodoDestino].lon);
       pair<int, int> absP1 = Coord((int) p1.x, (int) p1.y);
       pair<int, int> absP2 = Coord((int) p2.x, (int) p2.y);
-      
+
       // Dibujar la arista del camino
       DrawLineEx({ (float) absP1.first, (float) absP1.second }, { (float) absP2.first, (float) absP2.second },
                  5.0f, GREEN);
@@ -318,7 +318,7 @@ static void procesarInteraccion() {
           CLICKS_BLOQUEO = 1;
           TIENE_BLOQUEO = false;
         }
-      } 
+      }
       // ── MODO: Captura de Origen y Destino de ruta ───────────────────────────
       else {
         mapaClickeado = true;
@@ -535,8 +535,8 @@ static void dibujarBloqueo() {
     int width = maxX - minX;
     int height = maxY - minY;
 
-    Color relleno = { 253, 249, 0, 80 };  // Amarillo semitransparente (Alpha = 80)
-    Color borde = { 253, 249, 0, 255 };   // Amarillo opaco (Alpha = 255)
+    Color relleno = { 253, 249, 0, 80 }; // Amarillo semitransparente (Alpha = 80)
+    Color borde = { 253, 249, 0, 255 };  // Amarillo opaco (Alpha = 255)
 
     // Dibujar relleno y contorno grueso de 3px
     DrawRectangle(minX, minY, width, height, relleno);
@@ -546,17 +546,18 @@ static void dibujarBloqueo() {
 
 // Función principal orquestadora llamada en cada fotograma cuando la opción de Dijkstra está activa
 void drawInterfazDjikstra() {
-  // 1. Procesar transformaciones de Zoom y Paneo
-  procesarZoomYPan();
 
-  // 2. Renderizar imagen estática de fondo del mapa
+  // 1. Renderizar imagen estática de fondo del mapa
   dibujarFondoMapa();
 
-  // 3. Renderizar las aristas (calles), el camino óptimo calculado, los nodos y los bloqueos viales
+  // 2. Renderizar las aristas (calles), el camino óptimo calculado, los nodos y los bloqueos viales
   dibujarCalles();
   dibujarCaminoCalculado();
   dibujarNodos();
   dibujarBloqueo();
+
+  // 3. Procesar transformaciones de Zoom y Paneo
+  procesarZoomYPan();
 
   // 4. Capturar entradas de teclado/mouse para seleccionar nodos y dibujar bloqueos
   procesarInteraccion();
