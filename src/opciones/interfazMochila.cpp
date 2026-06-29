@@ -263,7 +263,7 @@ void drawInterfazMochila() {
 
     // Cabecera roja de compras con nombre del mercado
     DrawRectangle(px, py, PANEL_W, HEADER_H, { 139, 0, 0, 255 });
-    string headerText = "CARRITO DE COMPRAS — " + nombreMercado;
+    string headerText = "CARRITO DE COMPRAS - " + nombreMercado;
     DrawText(headerText.c_str(), px + 12, py + 8, 17, WHITE);
 
     // Nombres fijos de las columnas
