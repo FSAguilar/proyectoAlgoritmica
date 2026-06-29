@@ -59,12 +59,12 @@ g++ src/*.cpp -o main -Iinclude -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 
 **En Windows:**
 ```bash
-./juego.exe
+./main.exe
 ```
 
 **En Linux:**
 ```bash
-./juego
+./main
 ```
 
 
