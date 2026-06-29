@@ -13,9 +13,9 @@ struct Emergencia {
 // Representa a un paciente que entró a la cola
 struct Paciente {
   string nombre;
-  string emergencia;   // debe coincidir exactamente con un "nombre" de TABLA_EMERGENCIAS
+  string emergencia; // debe coincidir exactamente con un "nombre" de TABLA_EMERGENCIAS
   int edad;
-  double horaLlegada;  // momento (en segundos desde que arrancó el programa) en que se añadió
+  double horaLlegada; // momento (en segundos desde que arrancó el programa) en que se añadió
 };
 
 // Índice de la emergencia actualmente seleccionada en TABLA_EMERGENCIAS, mientras
@@ -153,6 +153,9 @@ void drawColaPrioridad() {
   static string inputNombre, inputEmergencia, inputEdad;
   static int campoActivo = 0; // 0 = ninguno, 1 = nombre, 2 = emergencia, 3 = edad
 
+  // Almacena una copia del último paciente atendido/asignado para mostrarlo en pantalla
+  static Paciente *prevPaciente = nullptr;
+
   // Actualizamos la global ANTES de ordenar, para que puntaje() use el tiempo de este frame
   g_ahora = GetTime();
 
@@ -242,10 +245,26 @@ void drawColaPrioridad() {
 
   // Botón ASIGNAR: como la cola ya está ordenada (mayor prioridad primero),
   // el primer elemento SIEMPRE es el paciente con más puntaje.
-  // erase(begin()) lo elimina y todos los demás se recorren una posición hacia adelante.
   if (isButtonPressed(btns[1])) {
-    if (!cola.empty()) cola.erase(cola.begin());
+    if (!cola.empty()) {
+      // Si aún no hemos creado la instancia persistente del paciente previo, la creamos
+      if (prevPaciente == nullptr) {
+        prevPaciente = new Paciente();
+      }
+      // Guardamos los datos del paciente antes de quitarlo de la cola
+      *prevPaciente = cola[0];
+
+      // erase(begin()) lo elimina y todos los demás se recorren una posición hacia adelante.
+      cola.erase(cola.begin());
+    }
   }
 
   text("Sala Disponible", 250, 150, 22, BLACK);
+
+  // Imprimir los datos del paciente anterior si existe
+  if (prevPaciente != nullptr) {
+    string datosPrev = prevPaciente->nombre + " - " + prevPaciente->emergencia + " (" + to_string(prevPaciente->edad) + ")";
+    text("Último Asignado:", 250, 290, 18, DARKGRAY);
+    text(datosPrev.c_str(), 250, 320, 16, MAROON);
+  }
 }
