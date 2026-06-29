@@ -1,6 +1,6 @@
 #include "raylib.h"
 #include <bits/stdc++.h>
-#include "../include/opcion1.h"
+#include "../include/interfazDjikstra.h"
 #include "../include/interfazMochila.h"
 #include "../include/cola_prioridad.h"
 #include "../include/utils.h"
@@ -61,7 +61,7 @@ int main() {
 
       if (state == "camino mas corto") {
         ClearBackground({ 13, 17, 23, 255 });
-        drawOpcion1();
+        drawInterfazDjikstra();
         DrawText(state.c_str(), 0, 0, 20, BLACK);
       } else if (state == "mochila_bb") {
         ClearBackground(RAYWHITE);

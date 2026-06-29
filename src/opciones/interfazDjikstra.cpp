@@ -1,4 +1,4 @@
-#include "../../include/opcion1.h"
+#include "../../include/interfazDjikstra.h"
 #include "../../include/utils.h"
 #include "../../include/grafo_la_paz.h" // Cabecera sincronizada con el nuevo nombre
 #include "../../include/djikstra.h"
@@ -236,8 +236,8 @@ static void procesarInteraccion() {
   if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && (ELIGIENDO_BLOQUEOS || ORIGEN == -1 || DESTINO == -1)) {
     float mx = (float) GetMouseX();
     float my = (float) GetMouseY();
-    int w = GetScreenWidth();
-    int h = GetScreenHeight();
+    float w = GetScreenWidth();
+    float h = GetScreenHeight();
 
     // Solo procesar clics dentro del área visible del mapa (80% central)
     bool enElMapa = (mx >= w * 0.1f && mx <= w * 0.9f && my >= h * 0.1f && my <= h * 0.9f);
@@ -488,7 +488,7 @@ static void dibujarBloqueo() {
   }
 }
 
-void drawOpcion1() {
+void drawInterfazDjikstra() {
   // Para ir a la declaración de una función = Ctrl + Click Izquierdo
   //  --- 0. ZOOM Y PAN ---
   procesarZoomYPan();
